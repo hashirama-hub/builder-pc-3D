@@ -130,6 +130,46 @@ describe('rate limit middleware', () => {
   });
 });
 
+describe('rate limit client key', () => {
+  async function send(headers: Record<string, string>): Promise<{ res: Response; kv: FakeKV }> {
+    const kv = new FakeKV();
+    const db = new FakeProductsD1([], 0);
+    const res = await app.request('/api/products', { headers }, { DB: db.asD1, KV: kv.asKv });
+    return { res, kv };
+  }
+
+  it('keys on the LAST hop of x-forwarded-for', async () => {
+    const { res, kv } = await send({ 'x-forwarded-for': '1.2.3.4, 5.6.7.8' });
+    expect(res.status).toBe(200);
+    expect(kv.read('rl:5.6.7.8')).toBe('1');
+    expect(kv.read('rl:1.2.3.4')).toBeUndefined();
+    expect(kv.read('rl:1.2.3.4, 5.6.7.8')).toBeUndefined();
+  });
+
+  it('prefers cf-connecting-ip over x-forwarded-for', async () => {
+    const { res, kv } = await send({
+      'cf-connecting-ip': '9.9.9.9',
+      'x-forwarded-for': '1.2.3.4, 5.6.7.8',
+    });
+    expect(res.status).toBe(200);
+    expect(kv.read('rl:9.9.9.9')).toBe('1');
+    expect(kv.read('rl:5.6.7.8')).toBeUndefined();
+  });
+
+  it('uses the unknown bucket only when no client IP headers are present', async () => {
+    const { res, kv } = await send({});
+    expect(res.status).toBe(200);
+    expect(kv.read('rl:unknown')).toBe('1');
+  });
+
+  it('ignores blank x-forwarded-for hops', async () => {
+    const { res, kv } = await send({ 'x-forwarded-for': ' 1.2.3.4 ,, 5.6.7.8 ' });
+    expect(res.status).toBe(200);
+    expect(kv.read('rl:5.6.7.8')).toBe('1');
+    expect(kv.read('rl:unknown')).toBeUndefined();
+  });
+});
+
 describe('routing', () => {
   it('404s unknown paths', async () => {
     const res = await app.request('/nope', {}, { DB: null as unknown as D1Database, KV: new FakeKV().asKv });

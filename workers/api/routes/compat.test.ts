@@ -67,6 +67,37 @@ describe('POST /api/compat', () => {
     expect(res.status).toBe(400);
   });
 
+  it('rejects malformed part items with 400 instead of 500', async () => {
+    const probes: unknown[] = [
+      { parts: [{}] },
+      { parts: [{ product: { category: 'psu' } }] },
+      { parts: [{ product: null }] },
+      { parts: [{ product: { category: 'cpu', model: 'i5' } }] },
+      { parts: [{ product: { category: 'cpu', specs: { socket: 'AM5' } } }] },
+      { parts: [{ product: { category: 42, model: 'i5', specs: {} } }] },
+      { parts: [null] },
+      { parts: 'cpu' },
+    ];
+    for (const probe of probes) {
+      const res = await post(JSON.stringify(probe));
+      expect(res.status, `probe: ${JSON.stringify(probe)}`).toBe(400);
+      expect(await res.json()).toHaveProperty('error');
+    }
+  });
+
+  it('still accepts a minimal well-formed part', async () => {
+    const res = await post(
+      JSON.stringify({
+        parts: [
+          { slot: 'psu_slot', product: { category: 'psu', model: 'RM750x', specs: { wattage: 750 } } },
+        ],
+      })
+    );
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as CompatResult;
+    expect(json.ok).toBe(true);
+  });
+
   it('rejects a body that is not valid JSON', async () => {
     const res = await post('not-json{');
     expect(res.status).toBe(400);
