@@ -3,3 +3,7 @@ node_modules/
 .superpowers/
 dist/
 *.tsbuildinfo
+.wrangler/
+.dev.vars
+.env*
+!.env.example

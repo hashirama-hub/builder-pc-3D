@@ -1,0 +1,6 @@
+# apps/web/public/robots.txt — allow full crawl, point at the sitemap.
+# TODO: replace the domain below with the production domain (must match sitemap.xml).
+User-agent: *
+Allow: /
+
+Sitemap: https://pc-builder-3d.pages.dev/sitemap.xml

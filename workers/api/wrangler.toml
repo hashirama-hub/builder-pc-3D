@@ -1,26 +1,31 @@
 # workers/api/wrangler.toml — Cloudflare Worker API (Hono)
 name = "pc-builder-api"
 main = "index.ts"
-compatibility_date = "2026-01-01"
+compatibility_date = "2026-09-01"
 
 # D1 binding (products + builds).
-# Create it once:  npx wrangler d1 create pc-builder-db
-# Then paste the returned database_id below and apply the schema:
-#   npx wrangler d1 execute pc-builder-db --remote --file ../../db/schema.sql
+# TODO: create it once — `npx wrangler d1 create PC_BUILDER_DB` — then uncomment
+# `id` below and paste the returned database id. No id is invented here on purpose.
 [[d1_databases]]
 binding = "DB"
-database_name = "pc-builder-db"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_name = "PC_BUILDER_DB"
+# id = "<TODO: paste database_id from `npx wrangler d1 create PC_BUILDER_DB`>"
+
+# Apply the schema / seed (local dev state lives in workers/api/.wrangler/state):
+#   npx wrangler d1 execute PC_BUILDER_DB --local --file ../../db/schema.sql
+#   npm run seed        (repo root — schema + db/seed.sql, local)
+#   npm run seed:remote (repo root — needs the D1 id above)
 
 # KV binding (rate limiter, 100 req/min per IP).
-# Create it once:  npx wrangler kv namespace create pc-builder-rl
-# Then paste the returned id below.
+# TODO: create it once — `npx wrangler kv namespace create pc-builder-rl` — then
+# uncomment `id` below and paste the returned namespace id.
 [[kv_namespaces]]
 binding = "KV"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+# id = "<TODO: paste id from `npx wrangler kv namespace create pc-builder-rl`>"
 
 # Secrets / vars (none required yet):
 # [vars]
 # ENVIRONMENT = "production"
 
-# Deploy:  npx wrangler deploy
+# Deploy:  npm run deploy:api   (repo root)  /  npm run deploy  (workers/api)
+# Bundles without uploading:    npx wrangler deploy --dry-run

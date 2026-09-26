@@ -1,0 +1,68 @@
+# .github/workflows/deploy.yml — CI (test) + deploy the Worker on push to main.
+#
+# TODO(repo secrets, Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN   — API token with "Cloudflare Workers Scripts: Edit"
+#                            (+ Account "Workers KV: Edit" if you deploy KV-backed code).
+#   CLOUDFLARE_ACCOUNT_ID  — account id from the Cloudflare dashboard.
+# TODO(ids, filled once then committed):
+#   workers/api/wrangler.toml → d1_databases.id  (`npx wrangler d1 create PC_BUILDER_DB`)
+#   workers/api/wrangler.toml → kv_namespaces.id (`npx wrangler kv namespace create pc-builder-rl`)
+name: CI + Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck (Worker API)
+        run: npm run typecheck --workspace workers/api
+
+      - name: Typecheck (Web)
+        run: npx tsc --noEmit
+        working-directory: apps/web
+
+      - name: Test (vitest)
+        run: npx vitest run
+
+      - name: Build (Next.js web)
+        run: npm run build
+        working-directory: apps/web
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+
+      - name: Bundle Worker (wrangler dry run — proves imports resolve)
+        run: npx wrangler deploy --dry-run --outdir dist
+        working-directory: workers/api
+
+      - name: Deploy Worker to Cloudflare
+        # Only pushes to main deploy; PRs stop at the dry run above.
+        if: github.event_name != 'pull_request'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler deploy
+        working-directory: workers/api
