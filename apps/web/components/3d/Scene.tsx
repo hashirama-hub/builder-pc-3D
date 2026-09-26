@@ -5,7 +5,6 @@ import { OrbitControls } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
 import Image from 'next/image';
 import { Fragment, memo, useState } from 'react';
-import { CATEGORY_LABELS } from '@/lib/api';
 import type { PartCategory } from '@/types';
 import { useBuildStore } from '@/stores/useBuildStore';
 import { Case3D } from './Case3D';
