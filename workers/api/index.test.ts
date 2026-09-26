@@ -178,6 +178,100 @@ describe('routing', () => {
   });
 });
 
+describe('CORS', () => {
+  const ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://pc-builder-3d.pages.dev',
+  ];
+
+  function env(): { DB: D1Database; KV: KVNamespace } {
+    return { DB: new FakeProductsD1([], 0).asD1, KV: new FakeKV().asKv };
+  }
+
+  it('answers an OPTIONS preflight with 204 + allow-origin for every allowed origin', async () => {
+    for (const origin of ALLOWED_ORIGINS) {
+      const res = await app.request(
+        '/api/products',
+        {
+          method: 'OPTIONS',
+          headers: {
+            origin,
+            'access-control-request-method': 'POST',
+            'access-control-request-headers': 'content-type',
+          },
+        },
+        env()
+      );
+
+      expect(res.status, `origin: ${origin}`).toBe(204);
+      expect(res.headers.get('access-control-allow-origin'), `origin: ${origin}`).toBe(origin);
+      expect(res.headers.get('access-control-allow-methods')).toBe('GET,POST');
+      expect(res.headers.get('access-control-allow-headers')).toMatch(/content-type/i);
+    }
+  });
+
+  it('answers a preflight for an unknown path instead of 404ing it', async () => {
+    const res = await app.request(
+      '/nope',
+      {
+        method: 'OPTIONS',
+        headers: { origin: 'http://localhost:5173', 'access-control-request-method': 'GET' },
+      },
+      env()
+    );
+    expect(res.status).toBe(204);
+    expect(res.headers.get('access-control-allow-origin')).toBe('http://localhost:5173');
+  });
+
+  it('echoes the allowed origin on a normal response', async () => {
+    const res = await app.request(
+      '/api/products',
+      { headers: { origin: 'https://pc-builder-3d.pages.dev' } },
+      env()
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get('access-control-allow-origin')).toBe('https://pc-builder-3d.pages.dev');
+  });
+
+  it('sends no allow-origin header on a response for a disallowed origin', async () => {
+    const res = await app.request(
+      '/api/products',
+      { headers: { origin: 'https://evil.example.com' } },
+      env()
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get('access-control-allow-origin')).toBeNull();
+  });
+
+  it('sends no allow-origin header on a POST from a disallowed origin', async () => {
+    // POST /api/products has no route (404) — CORS must not widen the response.
+    const res = await app.request(
+      '/api/products',
+      {
+        method: 'POST',
+        headers: { origin: 'https://evil.example.com', 'content-type': 'application/json' },
+        body: '{}',
+      },
+      env()
+    );
+    expect(res.headers.get('access-control-allow-origin')).toBeNull();
+  });
+
+  it('sends no allow-origin header on a preflight from a disallowed origin', async () => {
+    const res = await app.request(
+      '/api/products',
+      {
+        method: 'OPTIONS',
+        headers: { origin: 'https://evil.example.com', 'access-control-request-method': 'POST' },
+      },
+      env()
+    );
+    expect(res.status).toBe(204);
+    expect(res.headers.get('access-control-allow-origin')).toBeNull();
+  });
+});
+
 describe('bucketKey', () => {
   it('prefers cf-connecting-ip, then the last XFF hop, then unknown', () => {
     expect(bucketKey('9.9.9.9', '1.1.1.1, 2.2.2.2')).toBe('9.9.9.9');
