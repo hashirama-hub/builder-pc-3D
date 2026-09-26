@@ -11,6 +11,7 @@ export function checkCompatibility(parts: BuildPart[]): CompatResult {
 
   const cpu = findPart(parts, 'cpu');
   const mb = findPart(parts, 'mainboard');
+  const ram = findPart(parts, 'ram');
   const gpu = findPart(parts, 'gpu');
   const psu = findPart(parts, 'psu');
   const case_ = findPart(parts, 'case');
@@ -30,6 +31,15 @@ export function checkCompatibility(parts: BuildPart[]): CompatResult {
     const ramType = cpu.specs.ramType || 'DDR5';
     if (mb.specs.ramType && mb.specs.ramType !== ramType) {
       errors.push(`RAM ${ramType} không khớp mainboard ${mb.specs.ramType}`);
+    }
+  }
+
+  // RAM module vs mainboard
+  if (ram && mb) {
+    const moduleRamType = ram.specs.ramType;
+    const mbRamType = mb.specs.ramType;
+    if (moduleRamType && mbRamType && moduleRamType !== mbRamType) {
+      errors.push(`RAM ${moduleRamType} không khớp mainboard ${mbRamType}`);
     }
   }
 
