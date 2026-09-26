@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { parsePartDragData, serializePartDragData, PART_MIME, type PartDragPayload } from '../lib/dnd';
+import {
+  parsePartDragData,
+  resolvePayload,
+  serializePartDragData,
+  PART_MIME,
+  type PartDragPayload,
+} from '../lib/dnd';
 import type { Product } from '../types';
 
 const product: Product = {
@@ -72,5 +78,60 @@ describe('serializePartDragData / parsePartDragData', () => {
       JSON.stringify({ category: 'cpu', product: { ...product, category: 'gpu' } })
     );
     expect(parsed).toEqual({ category: 'cpu' });
+  });
+});
+
+const otherCpu: Product = {
+  ...product,
+  id: 'cpu-2',
+  model: 'Ryzen 5 7600',
+};
+
+const ram: Product = {
+  ...product,
+  id: 'ram-9',
+  category: 'ram',
+  model: 'DDR5 32GB',
+};
+
+describe('resolvePayload', () => {
+  it('returns the product that travelled with the drag', () => {
+    expect(resolvePayload({ category: 'cpu', product }, [])).toEqual({
+      kind: 'product',
+      product,
+    });
+  });
+
+  it('resolves an id-only payload against the candidate list', () => {
+    const resolved = resolvePayload({ category: 'ram', id: 'ram-9' }, [product, ram]);
+    expect(resolved).toEqual({ kind: 'product', product: ram });
+  });
+
+  it('returns not-found when the id is absent from the list', () => {
+    expect(resolvePayload({ category: 'ram', id: 'ram-9' }, [product, otherCpu])).toEqual({
+      kind: 'not-found',
+    });
+  });
+
+  it('returns not-found for a category-only payload, never the first product', () => {
+    // Regression: the drop handler used to fall back to `products[0]`, silently
+    // installing an arbitrary part when the payload carried no id.
+    expect(resolvePayload({ category: 'cpu' }, [otherCpu, product])).toEqual({
+      kind: 'not-found',
+    });
+    expect(resolvePayload({ category: 'cpu' }, [])).toEqual({ kind: 'not-found' });
+  });
+
+  it('returns not-found when the id belongs to another category', () => {
+    expect(resolvePayload({ category: 'gpu', id: 'cpu-1' }, [product])).toEqual({
+      kind: 'not-found',
+    });
+  });
+
+  it('returns not-found when the attached product disagrees with the payload', () => {
+    const mismatched: Product = { ...product, category: 'gpu' };
+    expect(resolvePayload({ category: 'cpu', product: mismatched }, [])).toEqual({
+      kind: 'not-found',
+    });
   });
 });
