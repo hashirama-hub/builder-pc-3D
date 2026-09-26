@@ -1,0 +1,26 @@
+# workers/api/wrangler.toml — Cloudflare Worker API (Hono)
+name = "pc-builder-api"
+main = "index.ts"
+compatibility_date = "2026-01-01"
+
+# D1 binding (products + builds).
+# Create it once:  npx wrangler d1 create pc-builder-db
+# Then paste the returned database_id below and apply the schema:
+#   npx wrangler d1 execute pc-builder-db --remote --file ../../db/schema.sql
+[[d1_databases]]
+binding = "DB"
+database_name = "pc-builder-db"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+# KV binding (rate limiter, 100 req/min per IP).
+# Create it once:  npx wrangler kv namespace create pc-builder-rl
+# Then paste the returned id below.
+[[kv_namespaces]]
+binding = "KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# Secrets / vars (none required yet):
+# [vars]
+# ENVIRONMENT = "production"
+
+# Deploy:  npx wrangler deploy

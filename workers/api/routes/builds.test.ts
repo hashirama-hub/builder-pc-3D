@@ -38,7 +38,7 @@ class FakeD1 {
   }
 }
 
-function post(db: FakeD1, body: string): Promise<Response> {
+async function post(db: FakeD1, body: string): Promise<Response> {
   return buildsRoute.request(
     '/',
     { method: 'POST', headers: { 'content-type': 'application/json' }, body },
@@ -46,7 +46,7 @@ function post(db: FakeD1, body: string): Promise<Response> {
   );
 }
 
-function get(db: FakeD1, shortId: string): Promise<Response> {
+async function get(db: FakeD1, shortId: string): Promise<Response> {
   return buildsRoute.request(`/${shortId}`, { method: 'GET' }, { DB: db.asD1 });
 }
 

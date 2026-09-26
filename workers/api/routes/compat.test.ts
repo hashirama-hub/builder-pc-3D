@@ -39,7 +39,7 @@ const wrongMb: BuildPart = {
   },
 };
 
-function post(body: string): Promise<Response> {
+async function post(body: string): Promise<Response> {
   return compatRoute.request('/', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
