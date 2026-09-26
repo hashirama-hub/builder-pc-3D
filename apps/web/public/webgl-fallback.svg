@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="280" viewBox="0 0 420 280" role="img" aria-label="WebGL unavailable">
+  <rect width="420" height="280" rx="16" fill="#12121a" />
+  <rect x="60" y="50" width="300" height="170" rx="10" fill="#1a1a2e" stroke="#00f0ff" stroke-width="3" stroke-dasharray="10 8" />
+  <rect x="150" y="95" width="120" height="80" rx="6" fill="#24243e" stroke="#ff00ff" stroke-width="2" />
+  <path d="M175 135h70M210 110v50" stroke="#00f0ff" stroke-width="4" stroke-linecap="round" />
+  <text x="210" y="200" text-anchor="middle" fill="#00f0ff" font-family="monospace" font-size="16">NO WEBGL</text>
+</svg>
