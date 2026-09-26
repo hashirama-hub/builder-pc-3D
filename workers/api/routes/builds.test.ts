@@ -57,7 +57,17 @@ describe('POST /api/builds', () => {
       db,
       JSON.stringify({
         name: 'My rig',
-        parts: [{ slot: 'cpu_slot', product: { id: 'cpu-1' } }],
+        parts: [
+          {
+            slot: 'cpu_slot',
+            product: {
+              id: 'cpu-1',
+              category: 'cpu',
+              model: 'i5-13600K',
+              specs: { socket: 'LGA1700' },
+            },
+          },
+        ],
         totalPriceVnd: 4500000,
         compatible: true,
         warnings: ['few SATA ports'],
@@ -112,6 +122,21 @@ describe('POST /api/builds', () => {
     const res = await post(
       db,
       JSON.stringify({ name: 'x', parts: {}, totalPriceVnd: 1, compatible: true })
+    );
+    expect(res.status).toBe(400);
+    expect(db.binds).toHaveLength(0);
+  });
+
+  it('rejects malformed part items instead of persisting them', async () => {
+    const db = new FakeD1();
+    const res = await post(
+      db,
+      JSON.stringify({
+        name: 'x',
+        parts: [{ product: { category: 'psu' } }],
+        totalPriceVnd: 1,
+        compatible: true,
+      })
     );
     expect(res.status).toBe(400);
     expect(db.binds).toHaveLength(0);

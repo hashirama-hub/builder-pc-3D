@@ -2,6 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import type { D1Database, KVNamespace } from '@cloudflare/workers-types';
 import app from './index';
+import { bucketKey } from './middleware/rateLimit';
 
 class FakeKV {
   private readonly store: Map<string, string>;
@@ -174,5 +175,16 @@ describe('routing', () => {
   it('404s unknown paths', async () => {
     const res = await app.request('/nope', {}, { DB: null as unknown as D1Database, KV: new FakeKV().asKv });
     expect(res.status).toBe(404);
+  });
+});
+
+describe('bucketKey', () => {
+  it('prefers cf-connecting-ip, then the last XFF hop, then unknown', () => {
+    expect(bucketKey('9.9.9.9', '1.1.1.1, 2.2.2.2')).toBe('9.9.9.9');
+    expect(bucketKey(undefined, '1.1.1.1, 2.2.2.2')).toBe('2.2.2.2');
+    expect(bucketKey(undefined, '1.1.1.1, 2.2.2.2,')).toBe('2.2.2.2');
+    expect(bucketKey('   ', undefined)).toBe('unknown');
+    expect(bucketKey(undefined, undefined)).toBe('unknown');
+    expect(bucketKey(undefined, ' , , ')).toBe('unknown');
   });
 });

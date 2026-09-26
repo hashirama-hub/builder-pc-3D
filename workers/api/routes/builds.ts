@@ -77,7 +77,7 @@ buildsRoute.post('/', async (c) => {
   const input = parseCreateBuild(body);
   if (!input) {
     return c.json(
-      { error: 'Invalid build payload: name, parts, totalPriceVnd, compatible are required' },
+      { error: 'Invalid build payload: name, totalPriceVnd, compatible and well-formed parts are required' },
       400
     );
   }

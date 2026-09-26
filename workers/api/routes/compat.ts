@@ -20,7 +20,10 @@ compatRoute.post('/', async (c) => {
 
   const parts = asBuildParts((body as { parts?: unknown }).parts);
   if (!parts) {
-    return c.json({ error: 'Invalid payload: parts must be an array' }, 400);
+    return c.json(
+      { error: 'Invalid payload: parts must be an array of well-formed build parts' },
+      400
+    );
   }
 
   return c.json(checkCompatibility(parts));
