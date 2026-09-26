@@ -1,13 +1,6 @@
 // apps/web/lib/compatEngine.ts
 import type { Product, BuildPart, CompatResult } from '../types';
 
-const SOCKET_MATCH: Record<string, string[]> = {
-  LGA1700: ['LGA1700'],
-  AM5: ['AM5'],
-  AM4: ['AM4'],
-  LGA1851: ['LGA1851'],
-};
-
 function findPart(parts: BuildPart[], category: string): Product | undefined {
   return parts.find(p => p.product.category === category)?.product;
 }
