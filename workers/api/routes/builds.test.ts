@@ -148,6 +148,29 @@ describe('POST /api/builds', () => {
     expect(res.status).toBe(400);
     expect(db.binds).toHaveLength(0);
   });
+
+  it('answers an invalid body with 400 and zod issues', async () => {
+    const db = new FakeD1();
+    const res = await post(
+      db,
+      JSON.stringify({
+        name: 123,
+        parts: 'x',
+        totalPriceVnd: 'a',
+        compatible: 'yes',
+        warnings: [1],
+      })
+    );
+    expect(res.status).toBe(400);
+    const json = (await res.json()) as { error?: string; issues?: unknown };
+    expect(json.error).toBeTruthy();
+    expect(Array.isArray(json.issues)).toBe(true);
+    const issues = json.issues as { path: (string | number)[]; message: string }[];
+    expect(issues.length).toBeGreaterThan(1);
+    expect(typeof issues[0].message).toBe('string');
+    expect(Array.isArray(issues[0].path)).toBe(true);
+    expect(db.binds).toHaveLength(0);
+  });
 });
 
 describe('GET /api/builds/:shortId', () => {

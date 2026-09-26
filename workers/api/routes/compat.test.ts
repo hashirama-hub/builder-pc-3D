@@ -102,4 +102,26 @@ describe('POST /api/compat', () => {
     const res = await post('not-json{');
     expect(res.status).toBe(400);
   });
+
+  it('answers an invalid body with 400 and zod issues', async () => {
+    const res = await post(
+      JSON.stringify({ parts: [{ product: { category: 42, model: 7, specs: 'nope' } }] })
+    );
+    expect(res.status).toBe(400);
+    const json = (await res.json()) as { error?: string; issues?: unknown };
+    expect(json.error).toBeTruthy();
+    expect(Array.isArray(json.issues)).toBe(true);
+    const issues = json.issues as { path: (string | number)[]; message: string }[];
+    expect(issues.length).toBeGreaterThan(0);
+    expect(typeof issues[0].message).toBe('string');
+    expect(Array.isArray(issues[0].path)).toBe(true);
+  });
+
+  it('reports the missing parts key as a zod issue', async () => {
+    const res = await post(JSON.stringify({ nope: true }));
+    expect(res.status).toBe(400);
+    const json = (await res.json()) as { issues?: { path: (string | number)[] }[] };
+    expect(Array.isArray(json.issues)).toBe(true);
+    expect(json.issues?.[0]?.path).toEqual(['parts']);
+  });
 });
