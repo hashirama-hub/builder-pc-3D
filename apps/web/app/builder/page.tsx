@@ -8,8 +8,9 @@ import { Header } from '@/components/layout/Header';
 import { RightPanel } from '@/components/layout/RightPanel';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { fetchProducts, mapCategoryToSlot } from '@/lib/api';
-import { PART_MIME, parsePartDragData, type PartDragPayload } from '@/lib/dnd';
+import { PART_MIME, parsePartDragData, resolvePayload, type PartDragPayload } from '@/lib/dnd';
 import { useBuildStore } from '@/stores/useBuildStore';
+import type { Product } from '@/types';
 
 const Scene = dynamic(() => import('@/components/3d/Scene'), {
   ssr: false,
@@ -28,25 +29,27 @@ export default function BuilderPage() {
   const installPayload = useCallback(
     async (payload: PartDragPayload) => {
       const slot = mapCategoryToSlot(payload.category);
-      let product = payload.product;
+      let candidates: readonly Product[] = [];
 
-      if (!product) {
+      if (!payload.product) {
         try {
           const response = await fetchProducts({ category: payload.category, limit: 50 });
-          product =
-            response.products.find((item) => item.id === payload.id) ?? response.products[0];
+          candidates = response.products;
         } catch {
           setDropMessage('Không tải được dữ liệu — chạy `npm run dev:api`');
           return;
         }
       }
 
-      if (!product) {
+      // Never fall back to an arbitrary product: an id-only or category-only
+      // payload that does not match a candidate is "not found", not products[0].
+      const resolved = resolvePayload(payload, candidates);
+      if (resolved.kind === 'not-found') {
         setDropMessage('Không tìm thấy linh kiện phù hợp cho vị trí này');
         return;
       }
 
-      addPart({ product, slot });
+      addPart({ product: resolved.product, slot });
       setDropMessage(null);
     },
     [addPart]
