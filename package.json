@@ -7,10 +7,15 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "test": "vitest run",
-    "dev:api": "npx wrangler dev --config workers/api/wrangler.toml --port 8787",
+    "dev:api": "npm --prefix workers/api run dev",
+    "deploy:api": "npm --prefix workers/api run deploy",
+    "bundle:check:api": "npm --prefix workers/api run bundle:check",
+    "seed": "npm --prefix workers/api run seed",
+    "seed:remote": "npm --prefix workers/api run seed:remote",
+    "seed:file": "node scripts/seed.mjs",
+    "seed:ts": "node scripts/seed.ts",
     "test:watch": "vitest",
-    "lint": "eslint . --ext ts,tsx",
-    "deploy": "wrangler deploy"
+    "lint": "eslint . --ext ts,tsx"
   },
   "devDependencies": {
     "turbo": "^2.1.0",
