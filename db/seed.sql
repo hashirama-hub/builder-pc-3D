@@ -104,7 +104,7 @@ INSERT OR REPLACE INTO products (id, category, brand, model, specs, price_vnd, p
 ('monitor-asus-vg249q1a', 'monitor', 'ASUS', 'TUF Gaming VG249Q1A 24inch 165Hz',        '{"resolution":"1920x1080","refreshRate":165,"panelType":"IPS"}', 3190000,  '2026-09-27T00:00:00.000Z', 30, '/img/monitor-asus-vg249q1a.jpg', '/models/monitor-asus-vg249q1a.glb', 4.6, 'mid'),
 ('monitor-msi-g274f',      'monitor', 'MSI',  'G274F 27inch 180Hz',                      '{"resolution":"1920x1080","refreshRate":180,"panelType":"IPS"}', 3490000,  '2026-09-27T00:00:00.000Z', 26, '/img/monitor-msi-g274f.jpg',          '/models/monitor-msi-g274f.glb',      4.6, 'mid'),
 ('monitor-msi-g274qpf',    'monitor', 'MSI',  'G274QPF E2 27inch 170Hz',                '{"resolution":"2560x1440","refreshRate":170,"panelType":"IPS"}', 5490000,  '2026-09-27T00:00:00.000Z', 18, '/img/monitor-msi-g274qpf.jpg',        '/models/monitor-msi-g274qpf.glb',    4.7, 'high'),
-('monitor-asus-pg329q',    'monitor', 'ASUS', 'ROG Swift PG329Q 32inch 175Hz 4K',       '{"resolution":"3840x2160","refreshRate":175,"panelType":"IPS"}', 14990000, '2026-09-27T00:00:00.000Z', 6,  '/img/monitor-asus-pg329q.jpg',        '/models/monitor-asus-pg329q.glb',    4.7, 'enthusiast');
+('monitor-asus-pg329q',    'monitor', 'ASUS', 'ROG Swift PG329Q 32inch 175Hz 2560x1440',  '{"resolution":"2560x1440","refreshRate":175,"panelType":"IPS"}', 14990000, '2026-09-27T00:00:00.000Z', 6,  '/img/monitor-asus-pg329q.jpg',        '/models/monitor-asus-pg329q.glb',    4.7, 'enthusiast');
 
 -- ---------------------------------------------------------------------------
 -- Accessory (3)
