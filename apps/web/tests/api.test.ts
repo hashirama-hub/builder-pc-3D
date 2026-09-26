@@ -150,7 +150,7 @@ describe('fetchProducts', () => {
       return new Response(JSON.stringify({ data: [], total: 0, page: 1, limit: 20 }), { status: 200 });
     };
     await fetchProducts({}, { fetchImpl, baseUrl: 'https://api.example.com/' });
-    expect(captured.startsWith('https://api.example.com/api/products?')).toBe(true);
+    expect(captured).toBe('https://api.example.com/api/products');
   });
 
   it('omits empty filters from the query string', async () => {
