@@ -41,6 +41,34 @@ describe('Compatibility Engine', () => {
     expect(result.errors.some(e => e.includes('RAM'))).toBe(true);
   });
 
+  // --- RAM module ramType vs mainboard rule ---
+
+  it('errors when RAM module ramType differs from mainboard', () => {
+    const ddr4Ram = productSchema.parse({ id:'11', category:'ram', brand:'Kingston', model:'FURY Beast DDR4 16GB (2x8GB) 3200MHz', specs:{ ramType:'DDR4', tdp:7 }, priceVnd:990000, priceUpdatedAt:'2026-01-01', stock:45, imageUrl:'/img.jpg', model3dUrl:'/m.glb', rating:4.5, tier:'budget' });
+    // CPU socket matches the board (LGA1700) and the CPU rule is clean,
+    // so the only RAM error can come from the module itself.
+    const result = checkCompatibility([
+      { product: cpu, slot:'cpu_slot' },
+      { product: mb, slot:'mainboard_slot' }, // DDR5-only board
+      { product: ddr4Ram, slot:'ram_slot' },  // DDR4 kit
+    ]);
+    expect(result.ok).toBe(false);
+    expect(result.errors.some(e => e.includes('RAM'))).toBe(true);
+    expect(result.errors).toContain('RAM DDR4 không khớp mainboard DDR5');
+  });
+
+  it('passes when RAM module ramType matches mainboard', () => {
+    const ddr5Ram = productSchema.parse({ id:'12', category:'ram', brand:'Kingston', model:'FURY Beast DDR5 16GB (2x8GB) 5600MHz', specs:{ ramType:'DDR5', tdp:8 }, priceVnd:1690000, priceUpdatedAt:'2026-01-01', stock:35, imageUrl:'/img.jpg', model3dUrl:'/m.glb', rating:4.6, tier:'mid' });
+    const result = checkCompatibility([
+      { product: cpu, slot:'cpu_slot' },
+      { product: mb, slot:'mainboard_slot' }, // DDR5-only board
+      { product: ddr5Ram, slot:'ram_slot' },  // DDR5 kit
+    ]);
+    expect(result.errors.some(e => e.includes('RAM'))).toBe(false);
+    expect(result.ok).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
   // --- PSU wattage rule ---
 
   it('passes when PSU wattage covers required load', () => {
