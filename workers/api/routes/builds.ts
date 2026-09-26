@@ -2,18 +2,9 @@
 import { Hono } from 'hono';
 import type { Env } from '../env';
 import type { BuildPart } from '../../../apps/web/types';
-import { asBuildParts, asStringArray } from '../lib/parts';
+import { buildPostSchema, toBuildParts } from '../schemas';
 
 export const buildsRoute = new Hono<{ Bindings: Env }>();
-
-interface CreateBuildRequest {
-  name: string;
-  parts: BuildPart[];
-  totalPriceVnd: number;
-  compatible: boolean;
-  warnings: string[];
-  userId?: string;
-}
 
 interface BuildRow {
   id: string;
@@ -25,35 +16,6 @@ interface BuildRow {
   created_at: string;
   short_id: string;
   user_id: string | null;
-}
-
-/** Returns null (→ 400) when the payload is missing required fields. */
-function parseCreateBuild(body: unknown): CreateBuildRequest | null {
-  if (typeof body !== 'object' || body === null) return null;
-  const b = body as Record<string, unknown>;
-
-  if (typeof b.name !== 'string' || b.name.trim() === '') return null;
-  const parts = asBuildParts(b.parts);
-  if (!parts) return null;
-  if (typeof b.totalPriceVnd !== 'number' || !Number.isFinite(b.totalPriceVnd)) return null;
-  if (typeof b.compatible !== 'boolean') return null;
-  const warnings = asStringArray(b.warnings);
-  if (!warnings) return null;
-
-  let userId: string | undefined;
-  if (b.userId !== undefined && b.userId !== null) {
-    if (typeof b.userId !== 'string') return null;
-    userId = b.userId;
-  }
-
-  return {
-    name: b.name,
-    parts,
-    totalPriceVnd: b.totalPriceVnd,
-    compatible: b.compatible,
-    warnings,
-    userId,
-  };
 }
 
 function parseJson<T>(value: string, fallback: T): T {
@@ -74,13 +36,19 @@ buildsRoute.post('/', async (c) => {
     return c.json({ error: 'Invalid JSON body' }, 400);
   }
 
-  const input = parseCreateBuild(body);
-  if (!input) {
+  const parsed = buildPostSchema.safeParse(body);
+  if (!parsed.success) {
     return c.json(
-      { error: 'Invalid build payload: name, totalPriceVnd, compatible and well-formed parts are required' },
+      {
+        error:
+          'Invalid build payload: name, totalPriceVnd, compatible and well-formed parts are required',
+        issues: parsed.error.issues,
+      },
       400
     );
   }
+
+  const input = { ...parsed.data, parts: toBuildParts(parsed.data.parts) };
 
   const id = crypto.randomUUID();
   const shortId = id.slice(0, 8);
