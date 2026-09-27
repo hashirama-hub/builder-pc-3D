@@ -8,6 +8,7 @@ import {
   fetchBuild,
   saveBuild,
   ApiError,
+  isRateLimitError,
   CATEGORY_LABELS,
   type RawProductRow,
   type RawBuildRow,
@@ -123,6 +124,22 @@ describe('CATEGORY_LABELS', () => {
 });
 
 describe('fetchProducts', () => {
+  it('rejects with an ApiError carrying the status when rate limited (429)', async () => {
+    const fetchImpl = async (): Promise<Response> => new Response('slow down', { status: 429 });
+    const error: unknown = await fetchProducts({}, { fetchImpl }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).status).toBe(429);
+    expect(isRateLimitError(error)).toBe(true);
+  });
+
+  it('isRateLimitError is false for outages and non-Api errors', async () => {
+    const fetchImpl = async (): Promise<Response> => new Response('boom', { status: 503 });
+    const error: unknown = await fetchProducts({}, { fetchImpl }).catch((e: unknown) => e);
+    expect(isRateLimitError(error)).toBe(false);
+    expect(isRateLimitError(new TypeError('fetch failed'))).toBe(false);
+    expect(isRateLimitError(undefined)).toBe(false);
+  });
+
   it('hits /api/products with filters and maps rows to Product[]', async () => {
     let captured = '';
     const fetchImpl = async (input: string): Promise<Response> => {
