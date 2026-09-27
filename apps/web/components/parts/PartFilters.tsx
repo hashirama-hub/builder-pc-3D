@@ -2,7 +2,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, PackageOpen, RotateCcw, WifiOff } from 'lucide-react';
+import { AlertTriangle, Loader2, PackageOpen, RotateCcw, WifiOff } from 'lucide-react';
 import { useCallback, useMemo, useState, type ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import {
   CATEGORY_LABELS,
   PART_CATEGORIES,
   fetchProducts,
+  isRateLimitError,
   mapCategoryToSlot,
   type ProductQueryParams,
 } from '@/lib/api';
@@ -221,19 +222,30 @@ export function PartFilters() {
           <Loader2 className="h-4 w-4 animate-spin text-cyber-accent" /> Đang tải linh kiện…
         </div>
       ) : query.isError ? (
-        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200">
-          <p className="flex items-center gap-2 font-semibold">
-            <WifiOff className="h-4 w-4" /> Không tải được dữ liệu
-          </p>
-          <p className="mt-1 leading-relaxed text-amber-300/80">
-            API chưa chạy. Bật terminal khác với{' '}
-            <code className="rounded bg-cyber-900/70 px-1 py-0.5 font-mono">npm run dev:api</code>{' '}
-            rồi bấm tải lại.
-          </p>
-          <Button variant="outline" size="sm" className="mt-2" onClick={() => query.refetch()}>
-            Thử lại
-          </Button>
-        </div>
+        isRateLimitError(query.error) ? (
+          <div className="rounded-lg border border-yellow-400/50 bg-yellow-400/10 p-3 text-xs text-yellow-100">
+            <p className="flex items-center gap-2 font-semibold">
+              <AlertTriangle className="h-4 w-4" /> Quá nhiều yêu cầu — đợi ~1 phút rồi bấm &quot;Thử lại&quot;
+            </p>
+            <Button variant="outline" size="sm" className="mt-2" onClick={() => query.refetch()}>
+              Thử lại
+            </Button>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200">
+            <p className="flex items-center gap-2 font-semibold">
+              <WifiOff className="h-4 w-4" /> Không tải được dữ liệu
+            </p>
+            <p className="mt-1 leading-relaxed text-amber-300/80">
+              API chưa chạy. Bật terminal khác với{' '}
+              <code className="rounded bg-cyber-900/70 px-1 py-0.5 font-mono">npm run dev:api</code>{' '}
+              rồi bấm tải lại.
+            </p>
+            <Button variant="outline" size="sm" className="mt-2" onClick={() => query.refetch()}>
+              Thử lại
+            </Button>
+          </div>
+        )
       ) : query.data.products.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-lg border border-cyber-700/60 bg-cyber-800/50 p-4 text-center text-slate-400">
           <PackageOpen className="h-6 w-6 text-cyber-accent/70" />

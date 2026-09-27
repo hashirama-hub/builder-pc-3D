@@ -188,7 +188,7 @@ export async function fetchProducts(
   const impl: Fetcher = options.fetchImpl ?? ((input, init) => fetch(input, init));
   const res = await impl(buildProductsUrl(params, options.baseUrl));
   if (!res.ok) {
-    throw new Error(`API request failed with status ${res.status}`);
+    throw new ApiError(res.status);
   }
   const payload = (await res.json()) as ProductsPayload;
   return {
@@ -208,6 +208,18 @@ export class ApiError extends Error {
     this.name = 'ApiError';
     this.status = status;
   }
+}
+
+/**
+ * True when the worker throttled us (HTTP 429, 100 req/min per IP) — the UI
+ * should tell the user to wait instead of blaming a dead API. Accepts anything
+ * carrying a numeric `status`, so a re-thrown/serialized `ApiError` still matches.
+ */
+export function isRateLimitError(error: unknown): boolean {
+  if (error instanceof ApiError) return error.status === 429;
+  return (
+    typeof error === 'object' && error !== null && 'status' in error && error.status === 429
+  );
 }
 
 /** Raw shape of a `builds` row coming back from `GET /api/builds/:shortId`. */
