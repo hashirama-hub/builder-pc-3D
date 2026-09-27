@@ -2,7 +2,7 @@
 // Typed client for the Cloudflare Worker products API.
 // The API returns raw D1 rows (snake_case, `specs` as a JSON/BLOB string);
 // these helpers map them into the camelCase `Product` domain type.
-import type { PartCategory, PartSpecs, Product } from '../types';
+import type { Build, BuildPart, PartCategory, PartSpecs, Product } from '../types';
 
 /** Every category the domain type allows. */
 export const PART_CATEGORIES = [
@@ -197,4 +197,105 @@ export async function fetchProducts(
     page: payload.page ?? params.page ?? 1,
     limit: payload.limit ?? params.limit ?? 20,
   };
+}
+
+/** Error carrying the HTTP status, so callers can branch on 404 vs. outage. */
+export class ApiError extends Error {
+  readonly status: number;
+
+  constructor(status: number) {
+    super(`API request failed with status ${status}`);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+/** Raw shape of a `builds` row coming back from `GET /api/builds/:shortId`. */
+export interface RawBuildRow {
+  id: string;
+  name: string;
+  /** JSON string straight from D1, or the array the worker already parsed. */
+  parts: string | BuildPart[];
+  total_price_vnd: number;
+  /** SQLite stores booleans as 0/1; the worker passes them through as-is. */
+  compatible: number | boolean;
+  warnings: string | string[] | null;
+  created_at: string;
+  short_id: string;
+  user_id?: string | null;
+}
+
+/** Parse a JSON column that should hold an array; already-parsed rows pass through. */
+function parseJsonArray<T>(raw: string | T[] | null | undefined, fallback: T[]): T[] {
+  if (raw === null || raw === undefined) return fallback;
+  if (Array.isArray(raw)) return raw;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as T[]) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+/** Map one snake_case `builds` row into a `Build`. Never throws on bad optional fields. */
+export function mapRowToBuild(row: RawBuildRow): Build {
+  return {
+    id: row.id,
+    name: row.name,
+    parts: parseJsonArray<BuildPart>(row.parts, []),
+    totalPriceVnd: Number(row.total_price_vnd ?? 0),
+    compatible: row.compatible === true || Number(row.compatible) !== 0,
+    warnings: parseJsonArray<string>(row.warnings, []),
+    createdAt: row.created_at ?? '',
+    shortId: row.short_id,
+    userId: row.user_id ?? undefined,
+  };
+}
+
+/** `${baseUrl}/api/…` — same resolver the products helpers use. */
+export function buildApiUrl(path: string, baseUrl?: string): string {
+  return `${resolveBaseUrl(baseUrl)}${path}`;
+}
+
+/** Body of `POST /api/builds`. */
+export interface SaveBuildPayload {
+  name: string;
+  parts: BuildPart[];
+  totalPriceVnd: number;
+  compatible: boolean;
+  warnings: string[];
+  userId?: string;
+}
+
+export interface SavedBuild {
+  id: string;
+  shortId: string;
+}
+
+/** Persist a build; resolves to the ids needed for the share link. */
+export async function saveBuild(
+  payload: SaveBuildPayload,
+  options: FetchProductsOptions = {}
+): Promise<SavedBuild> {
+  const impl: Fetcher = options.fetchImpl ?? ((input, init) => fetch(input, init));
+  const res = await impl(buildApiUrl('/api/builds', options.baseUrl), {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new ApiError(res.status);
+  const saved = (await res.json()) as { id?: string; shortId?: string };
+  return { id: saved.id ?? '', shortId: saved.shortId ?? '' };
+}
+
+/** Fetch one saved build by its short id. Throws `ApiError(404)` when unknown. */
+export async function fetchBuild(
+  shortId: string,
+  options: FetchProductsOptions = {}
+): Promise<Build> {
+  const impl: Fetcher = options.fetchImpl ?? ((input, init) => fetch(input, init));
+  const res = await impl(buildApiUrl(`/api/builds/${encodeURIComponent(shortId)}`, options.baseUrl));
+  if (!res.ok) throw new ApiError(res.status);
+  const row = (await res.json()) as RawBuildRow;
+  return mapRowToBuild(row);
 }

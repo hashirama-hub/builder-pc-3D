@@ -5,8 +5,16 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { AlertTriangle, CheckCircle2, ChevronDown, CircleDashed, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { useBuildStore } from '@/stores/useBuildStore';
+import type { CompatResult } from '@/types';
 
 type Status = 'empty' | 'ok' | 'warning' | 'error';
+
+interface CompatibilityBadgeProps {
+  /** Result to render instead of the store's (a shared build's stored warnings). */
+  result?: CompatResult;
+  /** Part count to judge "empty" from, when `result` comes from a shared build. */
+  partCount?: number;
+}
 
 const STATUS_STYLE: Record<Status, { label: string; className: string; icon: JSX.Element }> = {
   empty: {
@@ -32,10 +40,13 @@ const STATUS_STYLE: Record<Status, { label: string; className: string; icon: JSX
 };
 
 /** Compatibility status from the store, expandable to the full message list. */
-export function CompatibilityBadge() {
-  const compatResult = useBuildStore((state) => state.compatResult);
-  const partCount = useBuildStore((state) => state.parts.length);
+export function CompatibilityBadge({ result, partCount: partCountProp }: CompatibilityBadgeProps) {
+  const storeResult = useBuildStore((state) => state.compatResult);
+  const storePartCount = useBuildStore((state) => state.parts.length);
   const [expanded, setExpanded] = useState(false);
+
+  const compatResult = result ?? storeResult;
+  const partCount = partCountProp ?? storePartCount;
 
   const errors = compatResult.errors;
   const warnings = compatResult.warnings;

@@ -3,6 +3,7 @@
 
 import { CompatibilityBadge } from '@/components/build/CompatibilityBadge';
 import { PriceBreakdown } from '@/components/build/PriceBreakdown';
+import { SaveBuildButton } from '@/components/build/SaveBuildButton';
 
 /** Right panel: compatibility status + cost summary. */
 export function RightPanel() {
@@ -15,6 +16,7 @@ export function RightPanel() {
         <div className="flex flex-col gap-4">
           <CompatibilityBadge />
           <PriceBreakdown />
+          <SaveBuildButton />
         </div>
       </div>
       <p className="mt-auto text-[11px] leading-relaxed text-slate-500">
