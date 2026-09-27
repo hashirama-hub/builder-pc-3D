@@ -12,6 +12,7 @@ const itxCase = productSchema.parse({ id:'6', category:'case', brand:'NZXT', mod
 const cooler = productSchema.parse({ id:'7', category:'cooler', brand:'DeepCool', model:'AK400', specs:{ heightMm:150 }, priceVnd:700000, priceUpdatedAt:'2026-01-01', stock:9, imageUrl:'/img.jpg', model3dUrl:'/m.glb', rating:4.4, tier:'budget' });
 const sataSsd = productSchema.parse({ id:'8', category:'ssd', brand:'Samsung', model:'870 EVO 1TB', specs:{ tdp:3 }, priceVnd:1800000, priceUpdatedAt:'2026-01-01', stock:20, imageUrl:'/img.jpg', model3dUrl:'/m.glb', rating:4.7, tier:'mid' });
 const m2Ssd = productSchema.parse({ id:'9', category:'ssd', brand:'Samsung', model:'990 PRO M.2 NVMe 1TB', specs:{ tdp:6 }, priceVnd:2600000, priceUpdatedAt:'2026-01-01', stock:15, imageUrl:'/img.jpg', model3dUrl:'/m.glb', rating:4.8, tier:'high' });
+const psu650 = productSchema.parse({ id:'psu-corsair-cv650', category:'psu', brand:'Corsair', model:'CV650 650W', specs:{ wattage:650 }, priceVnd:1200000, priceUpdatedAt:'2026-01-01', stock:3, imageUrl:'/img.jpg', model3dUrl:'/m.glb', rating:4.0, tier:'mid' });
 
 /** Repeat a product N times with distinct slots, e.g. for port-count rules. */
 const withSlots = (product: BuildPart['product'], count: number): BuildPart[] =>
@@ -155,6 +156,7 @@ describe('Compatibility Engine', () => {
     const parts = [
       { product: cpu, slot:'cpu_slot' },
       { product: mb, slot:'mainboard_slot' },
+      { product: psu650, slot:'psu_slot' }, // complete build: no "missing PSU" warning
       ...withSlots(sataSsd, 2), // 2 SATA + 2 M.2 = 4 SSDs = 4 SATA ports
       ...withSlots(m2Ssd, 2),   // 2 M.2 = 2 M.2 slots
     ];
@@ -162,5 +164,30 @@ describe('Compatibility Engine', () => {
     expect(result.warnings).toHaveLength(0);
     expect(result.errors).toHaveLength(0);
     expect(result.ok).toBe(true);
+  });
+
+  // --- Missing PSU rule ---
+
+  it('warns when parts are selected but no PSU is present', () => {
+    const result = checkCompatibility([
+      { product: cpu, slot:'cpu_slot' },
+      { product: mb, slot:'mainboard_slot' },
+    ]);
+    expect(result.warnings).toContain('Chưa chọn PSU — chưa kiểm tra tổng công suất');
+    expect(result.errors).toHaveLength(0);
+    expect(result.ok).toBe(true);
+  });
+
+  it('does not warn about a missing PSU when a PSU is selected', () => {
+    const result = checkCompatibility([
+      { product: cpu, slot:'cpu_slot' },
+      { product: mb, slot:'mainboard_slot' },
+      { product: psu650, slot:'psu_slot' },
+    ]);
+    expect(result.warnings).not.toContain('Chưa chọn PSU — chưa kiểm tra tổng công suất');
+  });
+
+  it('does not warn about a missing PSU when there are no parts at all', () => {
+    expect(checkCompatibility([]).warnings).toEqual([]);
   });
 });
