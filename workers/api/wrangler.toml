@@ -4,12 +4,10 @@ main = "index.ts"
 compatibility_date = "2026-09-01"
 
 # D1 binding (products + builds).
-# TODO: create it once — `npx wrangler d1 create PC_BUILDER_DB` — then uncomment
-# `id` below and paste the returned database id. No id is invented here on purpose.
 [[d1_databases]]
 binding = "DB"
 database_name = "PC_BUILDER_DB"
-# id = "<TODO: paste database_id from `npx wrangler d1 create PC_BUILDER_DB`>"
+id = "dc2d57c8-1015-4448-8f09-03bcad32df87"
 
 # Apply the schema / seed (local dev state lives in workers/api/.wrangler/state):
 #   npx wrangler d1 execute PC_BUILDER_DB --local --file ../../db/schema.sql
@@ -17,11 +15,9 @@ database_name = "PC_BUILDER_DB"
 #   npm run seed:remote (repo root — needs the D1 id above)
 
 # KV binding (rate limiter, 100 req/min per IP).
-# TODO: create it once — `npx wrangler kv namespace create pc-builder-rl` — then
-# uncomment `id` below and paste the returned namespace id.
 [[kv_namespaces]]
 binding = "KV"
-# id = "<TODO: paste id from `npx wrangler kv namespace create pc-builder-rl`>"
+id = "4a522a0480ff4a38ab1126437bac1099"
 
 # Secrets / vars (none required yet):
 # [vars]
