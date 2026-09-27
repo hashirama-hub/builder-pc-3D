@@ -11,22 +11,30 @@ const app = new Hono<{ Bindings: Env }>();
 
 /**
  * Strict origin allowlist: a browser only exposes a response to an origin the
- * server names, so every cross-origin reader (local dev servers, the Pages
- * deployment) has to be listed explicitly. Anything else gets no
- * `Access-Control-Allow-Origin` header at all.
+ * server names, so every cross-origin reader has to match one of these rules.
+ * Anything else gets no `Access-Control-Allow-Origin` header at all.
  */
-const ALLOWED_ORIGINS = [
-  'http://localhost:3000',
-  'http://localhost:5173',
-  'https://pc-builder-3d.pages.dev',
-];
+
+/** Any local dev server, whatever port it picked (`http://localhost:5173`, `:4173`, ...). */
+const LOCALHOST_ORIGIN = /^http:\/\/localhost:\d+$/;
+
+/** The production Pages domain plus its `<hash>.` preview subdomains. */
+const PAGES_PREVIEW_ORIGIN = /^https:\/\/[a-z0-9-]+\.pc-builder-3d\.pages\.dev$/;
+
+/** Origins that are allowed exactly as written. */
+const EXACT_ORIGINS = ['https://pc-builder-3d.pages.dev'];
+
+const isAllowedOrigin = (origin: string): boolean =>
+  LOCALHOST_ORIGIN.test(origin) ||
+  PAGES_PREVIEW_ORIGIN.test(origin) ||
+  EXACT_ORIGINS.includes(origin);
 
 // CORS first: it answers the OPTIONS preflight itself (204) without reaching
 // the routes or spending rate-limit budget.
 app.use(
   '*',
   cors({
-    origin: ALLOWED_ORIGINS,
+    origin: (origin) => (isAllowedOrigin(origin) ? origin : undefined),
     allowMethods: ['GET', 'POST'],
     allowHeaders: ['Content-Type'],
   })
