@@ -14,6 +14,7 @@ import {
   type ProductQueryParams,
 } from '@/lib/api';
 import type { Product } from '@/types';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useBuildStore } from '@/stores/useBuildStore';
 import { PartCard } from './PartCard';
 import { PartSearch } from './PartSearch';
@@ -57,12 +58,21 @@ const selectClassName =
 /** Filter controls + TanStack Query product list (left sidebar content). */
 export function PartFilters() {
   const [filters, setFilters] = useState<ProductQueryParams>(DEFAULT_FILTERS);
+  // Keystroke-fast input state; only the debounced copy reaches the query key,
+  // so typing does not fire one API request per keystroke (100 req/min limit).
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebouncedValue(searchInput, 300);
   const parts = useBuildStore((state) => state.parts);
   const addPart = useBuildStore((state) => state.addPart);
 
+  const queryFilters = useMemo<ProductQueryParams>(
+    () => (debouncedSearch ? { ...filters, search: debouncedSearch } : filters),
+    [filters, debouncedSearch]
+  );
+
   const query = useQuery({
-    queryKey: ['products', filters],
-    queryFn: () => fetchProducts(filters),
+    queryKey: ['products', queryFilters],
+    queryFn: () => fetchProducts(queryFilters),
     retry: false,
   });
 
@@ -96,18 +106,21 @@ export function PartFilters() {
     patch({ limit: (filters.limit ?? 50) + 50 });
   };
 
-  const resetFilters = () => setFilters(DEFAULT_FILTERS);
+  const resetFilters = () => {
+    setFilters(DEFAULT_FILTERS);
+    setSearchInput('');
+  };
 
   const showReset =
     Boolean(filters.category) ||
     Boolean(filters.brand) ||
-    Boolean(filters.search) ||
+    Boolean(searchInput) ||
     filters.minPrice !== undefined ||
     filters.maxPrice !== undefined;
 
   return (
     <div className="flex flex-col gap-3 p-3">
-      <PartSearch value={filters.search ?? ''} onValueChange={(search) => patch({ search })} />
+      <PartSearch value={searchInput} onValueChange={setSearchInput} />
 
       {/* category tabs */}
       <div className="flex flex-wrap gap-1.5">
