@@ -183,6 +183,8 @@ describe('CORS', () => {
     'http://localhost:3000',
     'http://localhost:5173',
     'https://pc-builder-3d.pages.dev',
+    // Cloudflare Pages preview deployments live on a hash subdomain.
+    'https://4d510ae8.pc-builder-3d.pages.dev',
   ];
 
   function env(): { DB: D1Database; KV: KVNamespace } {
@@ -234,6 +236,31 @@ describe('CORS', () => {
     expect(res.headers.get('access-control-allow-origin')).toBe('https://pc-builder-3d.pages.dev');
   });
 
+  it('echoes a pages preview origin on a normal response', async () => {
+    const previewOrigin = 'https://4d510ae8.pc-builder-3d.pages.dev';
+    const res = await app.request(
+      '/api/products',
+      { headers: { origin: previewOrigin } },
+      env()
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get('access-control-allow-origin')).toBe(previewOrigin);
+  });
+
+  it('allows any localhost port, not just the two hardcoded ones', async () => {
+    const origin = 'http://localhost:4173';
+    const res = await app.request(
+      '/api/products',
+      {
+        method: 'OPTIONS',
+        headers: { origin, 'access-control-request-method': 'POST' },
+      },
+      env()
+    );
+    expect(res.status).toBe(204);
+    expect(res.headers.get('access-control-allow-origin')).toBe(origin);
+  });
+
   it('sends no allow-origin header on a response for a disallowed origin', async () => {
     const res = await app.request(
       '/api/products',
@@ -264,6 +291,20 @@ describe('CORS', () => {
       {
         method: 'OPTIONS',
         headers: { origin: 'https://evil.example.com', 'access-control-request-method': 'POST' },
+      },
+      env()
+    );
+    expect(res.status).toBe(204);
+    expect(res.headers.get('access-control-allow-origin')).toBeNull();
+  });
+
+  it('still blocks a look-alike origin that merely ends with the allowed host', async () => {
+    const lookalike = 'https://pc-builder-3d.pages.dev.evil.example.com';
+    const res = await app.request(
+      '/api/products',
+      {
+        method: 'OPTIONS',
+        headers: { origin: lookalike, 'access-control-request-method': 'POST' },
       },
       env()
     );
