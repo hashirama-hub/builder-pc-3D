@@ -3,6 +3,7 @@
 
 import { ArrowLeft, Cpu, PackageOpen } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { CompatibilityBadge } from '@/components/build/CompatibilityBadge';
 import { ApiError, CATEGORY_LABELS, fetchBuild, formatVnd } from '@/lib/api';
@@ -64,14 +65,39 @@ function LoadingSkeleton() {
   );
 }
 
+/**
+ * Short id as it appears in the address bar.
+ *
+ * Under `output: 'export'` the id baked into the page at build time can only be
+ * a placeholder (see the segment layout's `generateStaticParams`), so the real
+ * id always comes from the URL the visitor actually opened.
+ */
+function shortIdFromPathname(pathname: string): string | null {
+  const match = /^\/build\/([^/?#]+)$/.exec(pathname);
+  if (!match) return null;
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return match[1];
+  }
+}
+
 /** Read-only view of a shared build: `/build/<shortId>`. */
-export default function SharedBuildPage({ params }: { params: { shortId: string } }) {
-  const { shortId } = params;
+export default function SharedBuildPage() {
+  const pathname = usePathname();
   const [state, setState] = useState<LoadState>('loading');
   const [build, setBuild] = useState<Build | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    const shortId = shortIdFromPathname(window.location.pathname);
+    if (!shortId) {
+      setBuild(null);
+      setState('not-found');
+      return () => {
+        cancelled = true;
+      };
+    }
     setState('loading');
     fetchBuild(shortId)
       .then((result) => {
@@ -87,7 +113,7 @@ export default function SharedBuildPage({ params }: { params: { shortId: string 
     return () => {
       cancelled = true;
     };
-  }, [shortId]);
+  }, [pathname]);
 
   // Stored builds persist warnings only — errors were never part of the row.
   const compat: CompatResult | null = build

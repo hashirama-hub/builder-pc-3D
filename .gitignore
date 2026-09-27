@@ -1,5 +1,7 @@
 node_modules/
 .next/
+# Static export output (`output: 'export'` in apps/web/next.config.js).
+apps/web/out/
 .superpowers/
 dist/
 *.tsbuildinfo
