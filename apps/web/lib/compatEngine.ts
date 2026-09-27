@@ -52,6 +52,12 @@ export function checkCompatibility(parts: BuildPart[]): CompatResult {
     }
   }
 
+  // Missing PSU: with no PSU the wattage rule above cannot run at all, so say
+  // so explicitly instead of letting a build look "fully checked".
+  if (parts.length > 0 && !psu) {
+    warnings.push('Chưa chọn PSU — chưa kiểm tra tổng công suất');
+  }
+
   // Case form factor
   if (case_ && mb) {
     const caseFF = case_.specs.formFactor;
